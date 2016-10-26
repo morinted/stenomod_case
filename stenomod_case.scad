@@ -93,6 +93,7 @@ mid_support = [pcb[x]/2 - 65, 40 - pcb[y]/2];
 // skip the USB port as it's tall.
 key_base = 6;
 
+// Cuts holes like the ones in the PCB through entire model
 module draw_screw_holes(side) {
     for (screw = screw_holes[side]) {
        translate([screw[x] - pcb[x]/2, screw[y] - pcb[y]/2, base_thickness + bottom_space/2]) {
@@ -101,6 +102,7 @@ module draw_screw_holes(side) {
     }
 }
 
+// Lip to offer connection between top and base.
 module lip() {
     difference() {
             cube([pcb[x] + lip_thickness, pcb[y] + lip_thickness, lip_height], true);
@@ -108,6 +110,18 @@ module lip() {
     }
 }
 
+// Stenomod logo for use (can't think of where to fit it)
+module logo(height) {
+    rotate([0, 180, 0]) {
+        linear_extrude(height = height, center = true, convexity = 10) {
+            scale([0.03, 0.03]) {
+                import("stenomod-traced.dxf", convexity=10);
+            }
+        }
+    }
+}
+
+// Base of case (bottom half)
 module base(side) {
     difference() {
         translate([0, 0, base_height / 2]) {
@@ -127,12 +141,13 @@ module base(side) {
        cube([20, 5, bottom_space], true);
     }
     
-    // lip on top wall
+    // lip on top of wall
     translate([0, 0, base_height + lip_height/2]) {
         lip();
     }
 }
 
+// Top of case (top half, facing down, must be flipped to print)
 module top(side) {
     difference() {
         translate([0, 0, top_height / 2]) {
@@ -154,7 +169,12 @@ module top(side) {
                 cube(usb_hole);
             }
         }
+        // Logo won't print upside down :(
+        //translate([11, 30, top_height]) {
+        //    logo(top_thickness/2);
+        //}
     }
+
     // supports
     for (screw = screw_holes[side]) {
        translate([screw[x] - pcb[x]/2, screw[y] - pcb[y]/2, top_space/2]) {

@@ -1,5 +1,7 @@
 include <boxes.scad>
 
+// Units in mm
+
 x = 0;
 y = 1;
 z = 2;
@@ -9,23 +11,43 @@ RIGHT = 1;
 // Stenomod PCB is only this big... and not very thick.
 pcb = [124.5, 80, 1.6];
 
-
-corner_radius = 5;
+// The radius of each corner, needs to allow lip to fit.
+// This library seems to have issues when you go below 5.
+// Experiment with values +-3.6 and you'll see what I mean.
+corner_radius = 2.5;
 
 top_space = 6;
-top_thickness = 2;
+top_thickness = 1.5;
 top_height = top_thickness + top_space;
 
-wall_thickness = 7;
+// Trade off between size and time.
+wall_thickness = 2.5;
 
+/**
+ * LIP is a joining between the top and bottom of case.
+ * Top lip goes *over* bottom lip, should prevent
+ * unsightly grooves and moisture spilling into the case
+ * with gravity.
+ */
+// The lip is half and half of the wall.
 lip_thickness = wall_thickness / 2;
+// How far up the lip reaches
 lip_height = 2;
+// Spacing between lips.
+lip_tolerance = 0.25;
 
-base_thickness = 2;
+// Bottom layer thickness
+base_thickness = 1.5;
+// To allow for solder joins and the like.
 bottom_space = 4;
 base_height = base_thickness + bottom_space + pcb[z];
-case = [pcb[0] + wall_thickness, pcb[1] + wall_thickness, base_height];
 
+case = [pcb[0] + wall_thickness*2, pcb[1] + wall_thickness*2, base_height];
+
+// Around screwholes and in center
+support_size = 5;
+
+// Cut outs for the keys
 top_paths = [
     [
         // Something like this shapewise.
@@ -65,13 +87,17 @@ top_paths = [
     ],
 ];
 
-usb_hole = [8, 6 + wall_thickness, 8];
+// Cutout for the USB on the left.
+// The jack on the teensy is the largest part, so I don't cover it.
+// Might be unsightly?
+usb_hole = [13, 7 + wall_thickness, 20];
 usb_location = [
     pcb[x] - 12 - pcb[x]/2,
-    3 - wall_thickness - pcb[y]/2,
+    1 - pcb[y]/2,
     0
 ];
 
+// Screw holes for each hand.
 screw_holes = [
     [
         [pcb[x] - 24, 5], // top left
@@ -86,6 +112,8 @@ screw_holes = [
         [10, pcb[y] - 5], // BR  
     ]
 ];
+
+// Supports the PCB in the middle.
 mid_support = [pcb[x]/2 - 65, 40 - pcb[y]/2];
 
 // We want to get over the the teensy, and up to the bottom of the key.
@@ -103,10 +131,10 @@ module draw_screw_holes(side) {
 }
 
 // Lip to offer connection between top and base.
-module lip() {
+module lip(offset) {
     difference() {
-            cube([pcb[x] + lip_thickness, pcb[y] + lip_thickness, lip_height], true);
-            cube([pcb[x], pcb[y], lip_height + 1], true);
+            cube([pcb[x] + lip_thickness*2 + offset, pcb[y] + lip_thickness*2 + offset, lip_height], true);
+            cube([pcb[x], pcb[y], lip_height], true);
     }
 }
 
@@ -134,16 +162,16 @@ module base(side) {
     // supports
     for (screw = screw_holes[side]) {
        translate([screw[x] - pcb[x]/2, screw[y] - pcb[y]/2, base_thickness + bottom_space/2]) {
-           cube([6, 6, bottom_space], true);
+           cube([support_size, support_size, bottom_space], true);
        }
     }
     translate([mid_support[x], mid_support[y], base_thickness + bottom_space/2]) {
-       cube([20, 5, bottom_space], true);
+       cube([support_size, support_size, bottom_space], true);
     }
     
     // lip on top of wall
     translate([0, 0, base_height + lip_height/2]) {
-        lip();
+        lip(-lip_tolerance/2);
     }
 }
 
@@ -157,7 +185,7 @@ module top(side) {
             cube([pcb[x], pcb[y], top_space], true);
         }
         translate([0, 0, lip_height/2]) {
-            lip();
+            lip(lip_tolerance/2);
         }
                 translate(-[pcb[x]/2, pcb[y]/2, -top_space + 0.01]) {
             linear_extrude(height = top_thickness + 0.02) {
@@ -166,7 +194,7 @@ module top(side) {
         }
         if (side == LEFT) {
             translate(usb_location) {
-                cube(usb_hole);
+                cube(usb_hole, true);
             }
         }
         // Logo won't print upside down :(
@@ -178,7 +206,7 @@ module top(side) {
     // supports
     for (screw = screw_holes[side]) {
        translate([screw[x] - pcb[x]/2, screw[y] - pcb[y]/2, top_space/2]) {
-           cube([6, 6, top_space], true);
+           cube([support_size, support_size, top_space], true);
        }
     }
 }
@@ -201,7 +229,7 @@ RIGHT_TOP = 3; // upside down
 CASE_L = 4; // Preview left hand, with spacer to show split
 CASE_R = 5; // Preview right hand
 module draw() {
-  part = CASE_R;
+  part = CASE_L;
   if (part == LEFT_BASE) {
     difference() {
         base(LEFT);
@@ -227,14 +255,14 @@ module draw() {
         both(LEFT);
         draw_screw_holes(LEFT);
         // cross section
-        //cube([100, 100, 100]);
+        cube([100, 100, 100]);
     }
   } else if (part == CASE_R) {
     difference() {
         both(RIGHT);
         draw_screw_holes(RIGHT);
         // cross section
-        //cube([100, 100, 100]);
+        cube([100, 100, 100]);
     } 
   }
 }

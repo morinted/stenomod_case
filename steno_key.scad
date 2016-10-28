@@ -102,6 +102,23 @@ key_profiles = [
 		0,   // Dish Skew Y
         90,  // Stem rotation
 	],
+    [ // Vowels!
+        18.16,  // Bottom Key Width
+		18.16,  // Bottom Key Height
+		1,   // Top Key Width Difference
+		1,   // Top Key Height Difference
+		8.5, // total Depth
+		3,  // Top Tilt
+		5.5, // Top Skew
+
+		//Dish Profile
+
+		0,   // Dish Type
+		1,   // Dish Depth
+		0,   // Dish Skew X
+		0,   // DIsh Skew Y
+        0,   // Stem rotation
+    ],
 ];
 
 // derived variables
@@ -411,15 +428,14 @@ module key(){
 	}
 }
 
-module letter(content, rot, tX, tY, tH) {
+module letter(content, rot, tX, tY, tH, super) {
     rotate ([0,0,rot]) {
-        // -3.3, -3 for profile 1
-        // 0, -3 for left profile 2 (A, E, -TS)
         translate ([tX,tY,tH]) {
             linear_extrude(height = 2) {
                 text(content, "Liberation Sans", size = 7,                 direction = "ltr", spacing = 1);
             }
         }
+        
     }
 }
 
@@ -427,89 +443,15 @@ module letter(content, rot, tX, tY, tH) {
 difference(){
 	key();
     // Use with profile 1: S-, T-, etc.
-    //letter("T", 0, -3.3, -3, 7);
+    letter("T", 0, -3.3, -3, 7);
+    
     // Profile 2: A-, -E, -T, -S
     //letter("9", 90, 0, -3, 5.8);
     // Profile 2: O-, -U, -D, -Z
     //letter("Z", 270, -6, -3, 5.8);
+    
+    // Profile 3: Vowels
+    //letter("A", 180, -2.7, -8.5, 7, "5");
 	// preview cube, for seeing inside the keycap
 	//cube([100,100,100]);
-}
-
-//minkowski_key();
-
-
-
-
-// Experimental stuff
-
-
-// key rounded with minkowski sum. still supports wall and keytop thickness.
-// use in actual output section. takes a long time to render with dishes.
-// required for keycap 11, G20 keycap.
-module minkowski_key(){
-	union(){
-		difference(){
-			minkowski(){
-				shape(minkowski_radius*2, minkowski_radius);
-				difference(){
-					sphere(r=minkowski_radius, $fn=24);
-					translate([0,0,-minkowski_radius])
-						cube([2*minkowski_radius,2*minkowski_radius,2*minkowski_radius], center=true);
-				}
-			}
-			shape(wall_thickness, keytop_thickness);
-		}
-	}
-
-	connector(has_brim);
-
-	if (stabilizers == 1){
-		stabilizer_connectors(has_brim);
-	}
-}
-
-
-// NOT 3D, NOT CENTERED
-// corollary is roundedRect
-module fakeISOEnter(thickness_difference){
-    z = 0.001;
-    radius = 2;
-		/*TODO I figured it out. 18.16 is the actual keycap width / height,
-		whereas 19.01 is the unit. ISO enter obeys that just like everything else,
-		which means that it's height is 18.16 * 2 + (19.01 - 18.16) or, two
-		keycap heights plus the space between them, also known as 18.16 +
-		(19.01 * (key_height - 1)). this is followed by the width too. should fix
-		to make this finally work*/
-    unit = 18.16; // TODO probably not
-
-		// t is all modifications to the polygon array
-		t = radius + thickness_difference/2;
-
-    pointArray = [
-        [0 + t,0 + t],
-        [unit*1.25 - t, 0 + t],
-        [unit*1.25  - t, unit*2  - t],
-        [unit*-.25 + t, unit*2  - t],
-        [unit*-.25 + t, unit*1  + t],
-        [0 + t, unit*1  + t]
-    ];
-
-    minkowski(){
-        circle(r=radius, $fn=24);
-        polygon(points=pointArray);
-    }
-}
-
-//corollary is shape_hull
-module ISOEnterShapeHull(thickness_difference, depth_difference, modifier){
-    unit = 18.16; // TODO probably not
-		height = 8 - depth_difference;
-		length = 1.5 * unit; // TODO not used. need for dish
-
-    translate([-0.125 * unit, unit*.5]) linear_extrude(height=height*modifier, scale=[.8, .9]){
-        translate([-unit*.5, -unit*1.5]) minkowski(){
-            fakeISOEnter(thickness_difference);
-        }
-    }
 }
